@@ -1,5 +1,8 @@
 require 'rubygems'
 require 'pry'
+require './EPTCBus'
+
+all_buses = {}
 
 [3, 21, 22, 23].each do |zone|
   select_page = Nokogiri::HTML(open("http://www.eptc.com.br/EPTC_Itinerarios/Linha.asp?cdEmp=#{zone}"))
@@ -9,7 +12,7 @@ require 'pry'
     url = "http://www.eptc.com.br/EPTC_Itinerarios/Cadastro.asp?" +
           "Linha=#{id}&Tipo=TH&Veiculo=1&Sentido=0&Logradouro=0" +
           "&Action=Tabela"
-    bus = EPTCBus.new(id, option_text, option_text, url)
-    binding.pry
+    current_bus = EPTCBus.new(id, option_text, option_text, url)
+    all_buses.merge!(current_bus.build)
   end
 end

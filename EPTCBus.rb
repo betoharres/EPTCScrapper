@@ -5,7 +5,7 @@ require 'json'
 require 'pry'
 
 class EPTCBus
-  attr_accessor :id, :url, :name, :code, :current_bus
+  attr_accessor :id, :url, :name, :code, :info
 
   def initialize(id, name, code, url)
     @route = :desconhecido
@@ -14,7 +14,7 @@ class EPTCBus
     self.url = url.to_s.strip
     self.code = code.match(/^\w+/).to_s.to_sym
     self.name = name.match(/(?!^\w+)(?!\s{1,}\-)\s.+(\n|)/m).to_s.strip
-    self.current_bus = {@code => {id: id, nome: @name, numero: @code, horarios: {}}}
+    self.info = {@code => {id: id, nome: @name, numero: @code, horarios: {}}}
   end
 
   def valid?(all_buses = {})
@@ -23,35 +23,21 @@ class EPTCBus
     end
   end
 
-  def build(url)
+  def build(url = self.url)
     page = Nokogiri::HTML(open(url))
     raise Exception if page.text.match(/Nenhum registro encontrado/)
     # TODO: find best way to do this
     page.css('b').each do |row|
       row = row.text.strip
-      # [directions, week, time].each do |method_call|
-      #   begin
-      #     method_call(row) if method_call
-      #   rescue
-      #     next
-      #   end
-      # end
-      begin
-        current_bus[:horarios].merge!(directions(row))
-      rescue
-        begin
-          current_bus[:horarios].values.last.merge!(week(row))
-        rescue
-          begin
-            current_bus[:horarios].values.last.values.last
-                                            .values.last << time(row)
-          rescue
-            next
-          end
-        end
+      if directions(row)
+        self.info[@code][:horarios].merge!(directions(row))
+      elsif week(row)
+        self.info[@code][:horarios].values.last.merge!(week(row))
+      elsif time(row)
+        self.info[@code][:horarios].values.last.values.last << time(row)
       end
     end
-    binding.pry
+    self.info
   end
 
   def directions(text)
@@ -59,47 +45,47 @@ class EPTCBus
     case text
       when "BAIRRO/CENTRO"
         @route = :ida
-        @sentido = "bairro_centro"
+        @direction = "bairro_centro"
       when "CENTRO/BAIRRO"
         @route = :volta
-        @sentido = "centro_bairro"
+        @direction = "centro_bairro"
       when "BAIR/CENT/BAIR", "CENT/BAIR/CENT", "TERMINAL/BAIRRO/TERMINAL"
         @route = :circular
-        @sentido = "circular"
+        @direction = "circular"
       when "BAIRRO/TERMINAL"
         @route = :ida
-        @sentido = "bairro_terminal"
+        @direction = "bairro_terminal"
       when "TERMINAL/BAIRRO"
         @route = :volta
-        @sentido = "terminal_bairro"
+        @direction = "terminal_bairro"
       when "NORTE/SUL"
         @route = :ida
-        @sentido = "norte_sul"
+        @direction = "norte_sul"
       when "SUL/NORTE"
         @route = :volta
-        @sentido = "sul_norte"
+        @direction = "sul_norte"
       when "NORTE/LESTE"
         @route = :ida
-        @sentido = "norte_leste"
+        @direction = "norte_leste"
       when "LESTE/NORTE"
         @route = :volta
-        @sentido = "leste_norte"
+        @direction = "leste_norte"
       when "LESTE/SUL"
         @route = :ida
-        @sentido = "leste_sul"
+        @direction = "leste_sul"
       when "SUL/LESTE"
         @route = :volta
-        @sentido = "sul_leste"
+        @direction = "sul_leste"
       when "BAIRRO/TERMINAL"
         @route = :ida
-        @sentido = "bairro_terminal"
+        @direction = "bairro_terminal"
       when "TERMINAL/BAIRRO"
         @route = :volta
-        @sentido = "terminal_bairro"
+        @direction = "terminal_bairro"
       else
         return
     end
-    {@route => {sentido: @sentido}}
+    {@route => {sentido: @direction}}
   end
 
   def week(text)
