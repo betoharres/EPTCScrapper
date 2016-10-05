@@ -16,3 +16,5 @@ all_buses = {}
     all_buses.merge!(current_bus.build)
   end
 end
+
+puts all_buses.to_json
