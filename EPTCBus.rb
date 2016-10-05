@@ -23,8 +23,10 @@ class EPTCBus
     end
   end
 
-  def build(url = self.url)
-    page = Nokogiri::HTML(open(url))
+  def build(options = {sleep: 0})
+    binding.pry
+    sleep options[:sleep]
+    page = Nokogiri::HTML(open(self.url))
     raise Exception if page.text.match(/Nenhum registro encontrado/)
     # TODO: find best way to do this
     page.css('b').each do |row|
