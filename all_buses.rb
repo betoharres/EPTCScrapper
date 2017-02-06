@@ -13,7 +13,11 @@ all_buses = {}
           "Linha=#{id}&Tipo=TH&Veiculo=1&Sentido=0&Logradouro=0" +
           "&Action=Tabela"
     current_bus = EPTCBus.new(id, option_text, option_text, url)
-    all_buses.merge!(current_bus.build)
+    begin
+      all_buses.merge!(current_bus.build(sleep: 5))
+    rescue StandardError
+      next
+    end
   end
 end
 

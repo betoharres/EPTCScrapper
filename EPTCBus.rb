@@ -23,12 +23,12 @@ class EPTCBus
     end
   end
 
-  def build(options = {sleep: 0})
-    binding.pry
+  def build(options = {sleep: 1})
     sleep options[:sleep]
     page = Nokogiri::HTML(open(self.url))
-    raise Exception if page.text.match(/Nenhum registro encontrado/)
+    raise StandardError, "Nenhum horario encontrado em #{self.name}" if page.text.match(/Nenhum registro encontrado/)
     # TODO: find best way to do this
+    # maybe page.text and then search schedules with regex
     page.css('b').each do |row|
       row = row.text.strip
       if directions(row)
