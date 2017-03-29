@@ -111,10 +111,7 @@ class EPTCBus
   def time(text)
     schedule = text.match(/(\d{2})[:](\d{2})/)
     return if schedule.nil?
-    if bus_for_disabled?(text)
-      [[schedule[1].to_i, schedule[2].to_i], cadeirante: true]
-    else
-      [[schedule[1].to_i, schedule[2].to_i], cadeirante: false]
-    end
+    disabled = bus_for_disabled?(text)
+    {horario: schedule[0], cadeirante: disabled}
   end
 end
