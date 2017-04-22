@@ -1,3 +1,4 @@
 # Usage
-Just run the ruby script and see everything happen:
-``$ ruby all_buses.rb > output.json``
+``$ ruby scrap.rb``
+
+Will output a ``.json``
