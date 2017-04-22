@@ -12,7 +12,9 @@ all_buses = {}
     url = "http://www.eptc.com.br/EPTC_Itinerarios/Cadastro.asp?" +
           "Linha=#{id}&Tipo=TH&Veiculo=1&Sentido=0&Logradouro=0" +
           "&Action=Tabela"
-    current_bus = EPTCBus.new(id, option_text, option_text, url)
+
+    puts option_text
+    current_bus = EPTCBus.new(id, option_text, url)
     begin
       all_buses.merge!(current_bus.build(sleep: 5))
     rescue StandardError
@@ -21,4 +23,4 @@ all_buses = {}
   end
 end
 
-puts all_buses.to_json
+File.write("#{Time.now.strftime('%Y%m%d%H%M%S')}.json", all_buses.to_json)
