@@ -7,12 +7,12 @@ require 'pry'
 class EPTCBus
   attr_accessor :id, :url, :name, :code, :info
 
-  def initialize(id, name, code, url)
+  def initialize(id, name, url)
     @route = :desconhecido
     @day_type = :dias_uteis
     self.id = id.to_s.strip
     self.url = url.to_s.strip
-    self.code = code.match(/^\w+/).to_s.to_sym
+    self.code = name.match(/^\w+/).to_s.to_sym
     self.name = name.match(/(?!^\w+)(?!\s{1,}\-)\s.+(\n|)/m).to_s.strip
     self.info = {@code => {id: id, nome: @name, numero: @code, horarios: {}}}
   end
@@ -30,13 +30,13 @@ class EPTCBus
     # TODO: find best way to do this
     # maybe page.text and then search schedules with regex
     page.css('b').each do |row|
-      row = row.text.strip
-      if directions(row)
-        self.info[@code][:horarios].merge!(directions(row))
-      elsif week(row)
-        self.info[@code][:horarios].values.last.merge!(week(row))
-      elsif time(row)
-        self.info[@code][:horarios].values.last.values.last << time(row)
+      text = row.text.strip
+      if directions(text)
+        self.info[@code][:horarios].merge!(directions(text))
+      elsif week(text)
+        self.info[@code][:horarios].values.last.merge!(week(text))
+      elsif time_info = time(row)
+        self.info[@code][:horarios].values.last.values.last << time_info
       end
     end
     self.info
@@ -104,14 +104,18 @@ class EPTCBus
     {@day_type => []}
   end
 
-  def bus_for_disabled?(text)
-    text.to_s.match(/APD\.gif/) ? true : false
+  def bus_for_disabled?(row)
+    if row.children.length > 1
+      row.children[1].attributes['src'].value.to_s.match(/APD\.gif/) ? true : false
+    else
+      return false
+    end
   end
 
-  def time(text)
-    schedule = text.match(/(\d{2})[:](\d{2})/)
+  def time(row)
+    schedule = row.text.match(/(\d{2})[:](\d{2})/)
     return if schedule.nil?
-    disabled = bus_for_disabled?(text)
+    disabled = bus_for_disabled?(row)
     {horario: schedule[0], cadeirante: disabled}
   end
 end
