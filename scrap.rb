@@ -16,7 +16,7 @@ all_buses = {}
     puts option_text
     current_bus = EPTCBus.new(id, option_text, url)
     begin
-      all_buses.merge!(current_bus.build(sleep: 5))
+      all_buses.merge!(current_bus.build(sleep: 2))
     rescue StandardError
       next
     end

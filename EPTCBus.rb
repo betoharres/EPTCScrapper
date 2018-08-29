@@ -5,18 +5,18 @@ require 'json'
 require 'pry'
 
 class EPTCBus
-  attr_accessor :id, :url, :name, :code, :info
-
   def initialize(id, name, url)
-    @route = :desconhecido
-    @day_type = :dias_uteis
-    self.id = id.to_s.strip
-    self.url = url.to_s.strip
-    self.code = name.match(/^\w+/).to_s.to_sym
-    self.name = name.match(/(?!^\w+)(?!\s{1,}\-)\s.+(\n|)/m).to_s.strip
-    self.info = {@code => {id: id, nome: @name, numero: @code, horarios: {}}}
+    @id = id.to_s.strip
+    @url = url.to_s.strip
+    @code = name.match(/^\w+/).to_s.to_sym
+    @name = name.match(/(?!^\w+)(?!\s{1,}\-)\s.+(\n|)/m).to_s.strip
+    @day_type = nil
+    @direction = nil
+    @info = {
+      @code => {id: id, nome: @name, numero: @code, sentidos: [], horarios: {}}}
   end
 
+  # blacklist
   def valid?(all_buses = {})
     if ['395-79', '394-27'].include?(@id) || all_buses[@code.to_s]
       return false
@@ -25,86 +25,96 @@ class EPTCBus
 
   def build(options = {sleep: 1})
     sleep options[:sleep]
-    page = Nokogiri::HTML(open(self.url))
-    raise StandardError, "Nenhum horario encontrado em #{self.name}" if page.text.match(/Nenhum registro encontrado/)
+    page = Nokogiri::HTML(open(@url))
+    if page.text.match(/Nenhum registro encontrado/)
+      raise StandardError, "Nenhum horario encontrado em #{@name}"
+    end
     # TODO: find best way to do this
     # maybe page.text and then search schedules with regex
+    schedule_objects = nil
     page.css('b').each do |row|
-      text = row.text.strip
-      if directions(text)
-        self.info[@code][:horarios].merge!(directions(text))
-      elsif week(text)
-        self.info[@code][:horarios].values.last.merge!(week(text))
-      elsif time_info = time(row)
-        self.info[@code][:horarios].values.last.values.last << time_info
+      text = row.text.to_s.strip
+      if direction = which_direction(text)
+        @direction = direction
+        @info[@code][:sentidos] << @direction
+        @info[@code][:horarios].merge!({@direction => {}})
+        next
+      elsif day_type = current_day(text)
+        @day_type = day_type
+        @info[@code][:horarios][@direction].merge!({day_type => {}})
+        next
+      elsif schedule = schedule_info(row)
+        @info[@code][:horarios][@direction][@day_type].merge!(
+          {schedule[:number] => {
+            horario: schedule[:time],
+            cadeirante: handicap?(row)
+          }})
+        next
       end
     end
-    self.info
+    sort_schedules
+    return @info
   end
 
-  def directions(text)
-    text = text.to_s.strip
+  def sort_schedules
+    @info[@code][:horarios][@direction].keys.each do |day_type|
+      schedules = @info[@code][:horarios][@direction][day_type]
+      @info[@code][:horarios][@direction][day_type] = {}
+      schedules.keys.sort.each do |schedule_number|
+        @info[@code][:horarios][@direction][day_type].merge!({
+          schedule_number => schedules[schedule_number]
+        })
+      end
+    end
+  end
+
+  def which_direction(text)
     case text
       when "BAIRRO/CENTRO"
-        @route = :ida
-        @direction = "bairro_centro"
+        return "bairro_centro"
       when "CENTRO/BAIRRO"
-        @route = :volta
-        @direction = "centro_bairro"
+        return "centro_bairro"
       when "BAIR/CENT/BAIR", "CENT/BAIR/CENT", "TERMINAL/BAIRRO/TERMINAL"
-        @route = :circular
-        @direction = "circular"
+        return "circular"
       when "BAIRRO/TERMINAL"
-        @route = :ida
-        @direction = "bairro_terminal"
+        return "bairro_terminal"
       when "TERMINAL/BAIRRO"
-        @route = :volta
-        @direction = "terminal_bairro"
+        return "terminal_bairro"
       when "NORTE/SUL"
-        @route = :ida
-        @direction = "norte_sul"
+        return "norte_sul"
       when "SUL/NORTE"
-        @route = :volta
-        @direction = "sul_norte"
+        return "sul_norte"
       when "NORTE/LESTE"
-        @route = :ida
-        @direction = "norte_leste"
+        return "norte_leste"
       when "LESTE/NORTE"
-        @route = :volta
-        @direction = "leste_norte"
+        return "leste_norte"
       when "LESTE/SUL"
-        @route = :ida
-        @direction = "leste_sul"
+        return "leste_sul"
       when "SUL/LESTE"
-        @route = :volta
-        @direction = "sul_leste"
+        return "sul_leste"
       when "BAIRRO/TERMINAL"
-        @route = :ida
-        @direction = "bairro_terminal"
+        return "bairro_terminal"
       when "TERMINAL/BAIRRO"
-        @route = :volta
-        @direction = "terminal_bairro"
+        return "terminal_bairro"
       else
         return
     end
-    {@route => {sentido: @direction}}
   end
 
-  def week(text)
+  def current_day(text)
     case text
       when "Dias Úteis"
-        @day_type = :dias_uteis
+        return :dias_uteis
       when "Sábados"
-        @day_type = :sabado
+        return :sabado
       when "Domingos"
-        @day_type = :domingo
+        return :domingo
       else
         return
     end
-    {@day_type => []}
   end
 
-  def bus_for_disabled?(row)
+  def handicap?(row)
     if row.children.length > 1
       row.children[1].attributes['src'].value.to_s.match(/APD\.gif/) ? true : false
     else
@@ -112,10 +122,9 @@ class EPTCBus
     end
   end
 
-  def time(row)
-    schedule = row.text.match(/(\d{2})[:](\d{2})/)
-    return if schedule.nil?
-    disabled = bus_for_disabled?(row)
-    {horario: schedule[0], cadeirante: disabled}
+  def schedule_info(row)
+    schedule_time = row.text.match(/(\d{2})[:](\d{2})/)
+    return if schedule_time.nil?
+    {time: schedule_time[0], number: "#{schedule_time[1]}#{schedule_time[2]}".to_i}
   end
 end
