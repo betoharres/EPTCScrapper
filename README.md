@@ -5,9 +5,11 @@ scripts(`scrap.rb`, `models.rb`, `EPTCBus.rb`)
 
 2. run: ``$ ruby scrap.rb``
 
-Will output a `.db` file
+It will output a `.db` file
 
-**NOTE**: one file at a time otherwise the EPTC website go down - process take around 1h
+**NOTES**:
+- one url at a time otherwise EPTC's website will go down
+- entire process take around 1h
 
 ## Bus example:
 
