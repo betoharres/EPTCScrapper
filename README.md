@@ -39,7 +39,7 @@ stop_datetime = 2020-01-01 06:48:00
 ```
   unknown: 0         , circular: 1        ,
   bairro_centro: 2   , centro_bairro: 3   ,
-  bairro_terminal: 2 , terminal_bairro: 5 ,
+  bairro_terminal: 4 , terminal_bairro: 5 ,
   norte_sul: 6       , sul_norte: 7       ,
   norte_leste: 8     , leste_norte: 9     ,
   leste_sul: 10      , sul_leste: 11      ,
