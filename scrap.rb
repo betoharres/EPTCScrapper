@@ -21,8 +21,8 @@ counter = 1
     begin
       current_bus.build(sleep: 2)
       counter += 1
-    rescue StandardError => error
-      puts error
+    rescue StandardError => agorafudeu
+      puts agorafudeu
       next
     end
   end
