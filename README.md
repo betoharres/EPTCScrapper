@@ -9,7 +9,7 @@ It will output a `.db` file
 
 **NOTES**:
 - one url at a time otherwise EPTC's website will go down
-- entire process take around 1h
+- entire process takes ~40min
 
 ## Bus example:
 
