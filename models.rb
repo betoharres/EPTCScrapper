@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'active_record'
+# require 'pry'
 
 # ActiveRecord::Base.logger = Logger.new(STDERR)
 ActiveRecord::Base.establish_connection(
@@ -16,36 +17,25 @@ ActiveRecord::Schema.define do
   end
 
   create_table :schedules, if_not_exists: true do |t|
-    t.integer  :direction,   limit:   1, default: 0
-    t.integer  :dayType,     limit:   1, default: 0
-    t.integer  :hour,        limit:   1, default: 0
-    t.integer  :minute,      limit:   1, default: 0
-    t.string   :time,        limit:   5
+    t.integer  :direction,    limit:   1, default: 0
+    t.integer  :dayType,      limit:   1, default: 0
+    t.integer  :hour,         limit:   1, default: 0
+    t.integer  :minute,       limit:   1, default: 0
+    t.string   :time,         limit:   5
     t.datetime :timeDateTime
     t.boolean  :isHandicap,   default: false
     t.boolean  :isSummerTime, default: false
+    t.references :bus,        index: false
   end
 
-  create_table :bus_stops, if_not_exists: true do |t|
-    t.references :bus, index: false
-    t.references :schedule, index: false
-  end
 end
 
 # bus model
 class Bus < ActiveRecord::Base
-  has_many :bus_stops
-  has_many :schedules, through: :bus_stops
+  has_many :schedules
 end
 
 # schedule model
 class Schedule < ActiveRecord::Base
-  has_many :bus_stops
-  has_many :buses, through: :bus_stops
-end
-
-# bus stop model
-class BusStop < ActiveRecord::Base
   belongs_to :bus
-  belongs_to :schedule
 end

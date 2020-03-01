@@ -41,7 +41,7 @@ class EPTCBus
     )
   end
 
-  def create_schedule(schedule_data, is_handicap)
+  def create_schedule(schedule_data, is_handicap, bus)
     @current_direction ||= :unknown
     @current_day_type ||= :unknown
 
@@ -61,12 +61,9 @@ class EPTCBus
       time: schedule_data[2],
       timeDateTime: time_date_time,
       isHandicap: is_handicap,
-      isSummerTime: @is_summer_time
+      isSummerTime: @is_summer_time,
+      bus_id: bus.id
     )
-  end
-
-  def create_bus_stop(bus, schedule)
-    BusStop.create!(bus_id: bus.id, schedule_id: schedule.id)
   end
 
   def build(options = { sleep: 1 })
@@ -90,8 +87,7 @@ class EPTCBus
       elsif (schedule_data = schedule_info(row))
         # INSERT new schedule here
         bus = create_bus
-        schedule = create_schedule(schedule_data, handicap?(row))
-        create_bus_stop(bus, schedule)
+        create_schedule schedule_data, handicap?(row), bus
         next
       end
     end
