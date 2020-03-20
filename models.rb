@@ -27,7 +27,6 @@ ActiveRecord::Schema.define do
     t.boolean  :isSummerTime, default: false
     t.references :bus,        index: false
   end
-
 end
 
 # bus model
